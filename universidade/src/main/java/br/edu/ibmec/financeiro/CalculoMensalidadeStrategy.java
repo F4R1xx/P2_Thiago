@@ -1,18 +1,16 @@
 package br.edu.ibmec.financeiro;
 
-import br.edu.ibmec.entity.Curso;
-
 /**
  * Interface para o Design Pattern "Strategy".
  * Define o contrato para qualquer algoritmo (estratégia)
- * que saiba como calcular uma mensalidade.
+ * que saiba como calcular uma mensalidade a partir de um valor bruto.
  */
 public interface CalculoMensalidadeStrategy {
     
     /**
-     * Calcula a mensalidade com base no curso.
-     * @param curso O curso no qual o aluno está se matriculando.
+     * Aplica uma regra de negócio sobre o valor bruto da mensalidade.
+     * @param valorBruto O valor total (soma das disciplinas)
      * @return O valor final da mensalidade.
      */
-    double calcular(Curso curso);
+    double calcular(double valorBruto);
 }

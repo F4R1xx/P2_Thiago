@@ -1,8 +1,9 @@
 package br.edu.ibmec.service;
 
+// imports...
 import java.util.Collection;
 
-import org.springframework.beans.factory.annotation.Autowired; // NOVO: Importa o Builder
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,9 +23,10 @@ public class AlunoService {
     private AlunoRepository alunoRepository;
 
     @Autowired
-    private CursoRepository cursoRepository; // Este Service não deveria mais precisar disto
+    private CursoRepository cursoRepository; // Mantido por enquanto, pode ser removido
 
-    // MÉTODO ANTIGO DE DATA (getData) FOI MOVIDO PARA DENTRO DO AlunoBuilder
+    // Removido: A lógica de conversão de data foi para o AlunoBuilder
+    // public static final Data getData(String dataString) { ... }
 
     public AlunoDTO buscarAluno(int matricula) throws DaoException {
         try {
@@ -34,14 +36,14 @@ public class AlunoService {
             AlunoDTO alunoDTO = new AlunoDTO(
                     aluno.getMatricula(),
                     aluno.getNome(),
-                    aluno.getDataNascimento() != null ? aluno.getDataNascimento().toString() : null,
+                    aluno.getDataNascimento().toString(),
                     aluno.isMatriculaAtiva(),
-                    null, // DTO de EstadoCivil
-                    aluno.getCurso() != null ? aluno.getCurso().getCodigo() : 0, // Retorna 0 se não tiver curso
+                    null, // DTO de EstadoCivil (não implementado)
+                    0, // Código do curso (REMOVIDO - Aluno não tem mais curso direto)
                     aluno.getTelefones());
             return alunoDTO;
         } catch (Exception e) {
-            throw new DaoException("Erro ao buscar aluno");
+            throw new DaoException("Erro ao buscar aluno: " + e.getMessage());
         }
     }
 
@@ -49,75 +51,67 @@ public class AlunoService {
         return alunoRepository.findAll();
     }
 
-    /**
-     * Este método agora representa a "Inscrição" (Cadastro) do aluno.
-     * Ele apenas CRIA o aluno no sistema, mas não o matricula em um curso.
-     * A matrícula será feita pelo MatriculaService (Padrão Facade).
-     */
     @Transactional
     public Aluno cadastrarAluno(AlunoDTO alunoDTO) throws ServiceException,
             DaoException {
-        if ((alunoDTO.getMatricula() < 1) || (alunoDTO.getMatricula() > 9999)) { // Aumentei o limite
+        
+        // Validação (movida para cá, antes era de curso)
+        if ((alunoDTO.getMatricula() < 1)) {
             throw new ServiceException(
-                    ServiceExceptionEnum.ALUNO_MATRICULA_INVALIDA); // Enum correto
+                    ServiceExceptionEnum.ALUNO_MATRICULA_INVALIDA);
         }
-        if ((alunoDTO.getNome().length() < 1)
-                || (alunoDTO.getNome().length() > 100)) { // Aumentei o limite
-            throw new ServiceException(ServiceExceptionEnum.ALUNO_NOME_INVALIDO); // Enum correto
+        if ((alunoDTO.getNome() == null || alunoDTO.getNome().length() < 1)
+                || (alunoDTO.getNome().length() > 50)) { // Aumentei o limite
+            throw new ServiceException(ServiceExceptionEnum.ALUNO_NOME_INVALIDO);
+        }
+
+        if (alunoRepository.existsById(alunoDTO.getMatricula())) {
+            throw new DaoException("Matrícula já existe");
         }
 
         try {
-            if (alunoRepository.existsById(alunoDTO.getMatricula())) {
-                 throw new DaoException("Matrícula já existe");
-            }
-            
-            // NOVO: Usa o Builder para criar o Aluno
-            Aluno aluno = AlunoBuilder.fromDTO(alunoDTO);
+            // Usando o Padrão Builder
+            Aluno aluno = new AlunoBuilder(alunoDTO)
+                .comDadosPessoais()
+                .comDataNascimentoEIdade()
+                .build();
 
-            // O aluno é salvo SEM curso.
             return alunoRepository.save(aluno);
 
-        } catch (DaoException e) {
-            throw e;
         } catch (Exception e) {
-            throw new DaoException("Erro ao cadastrar aluno: " + e.getMessage());
+            throw new DaoException("Erro ao salvar aluno no banco: " + e.getMessage());
         }
     }
 
     @Transactional
     public void alterarAluno(AlunoDTO alunoDTO) throws ServiceException,
             DaoException {
-        // Validações (similares ao cadastro)
-        if ((alunoDTO.getMatricula() < 1) || (alunoDTO.getMatricula() > 9999)) {
+        // Validações
+        if ((alunoDTO.getMatricula() < 1)) {
             throw new ServiceException(
                     ServiceExceptionEnum.ALUNO_MATRICULA_INVALIDA);
         }
-        if ((alunoDTO.getNome().length() < 1)
-                || (alunoDTO.getNome().length() > 100)) {
+        if ((alunoDTO.getNome() == null || alunoDTO.getNome().length() < 1)
+                || (alunoDTO.getNome().length() > 50)) {
             throw new ServiceException(ServiceExceptionEnum.ALUNO_NOME_INVALIDO);
         }
 
+        // Verifica se existe
+        if (!alunoRepository.existsById(alunoDTO.getMatricula())) {
+            throw new DaoException("Aluno não encontrado para alteração");
+        }
+
         try {
-            // Busca o aluno existente
-            Aluno aluno = alunoRepository.findById(alunoDTO.getMatricula())
-                    .orElseThrow(() -> new DaoException("Aluno não encontrado"));
-
-            // Atualiza os dados usando o Builder (ou setters diretos)
-            // Vamos usar o Builder para manter a lógica de conversão da data
-            Aluno dadosNovos = AlunoBuilder.fromDTO(alunoDTO);
+            // Usando o Padrão Builder para criar o objeto atualizado
+            Aluno aluno = new AlunoBuilder(alunoDTO)
+                .comDadosPessoais()
+                .comDataNascimentoEIdade()
+                .build();
             
-            aluno.setNome(dadosNovos.getNome());
-            aluno.setDataNascimento(dadosNovos.getDataNascimento());
-            aluno.setMatriculaAtiva(dadosNovos.isMatriculaAtiva());
-            aluno.setTelefones(dadosNovos.getTelefones());
-            // Nota: Este método não altera o curso do aluno.
-            // Isso deve ser feito por um serviço de "transferência".
-
             alunoRepository.save(aluno);
-        } catch (DaoException e) {
-            throw e;
+
         } catch (Exception e) {
-             throw new DaoException("Erro ao alterar aluno: " + e.getMessage());
+            throw new DaoException("Erro ao alterar aluno: " + e.getMessage());
         }
     }
 
@@ -127,9 +121,10 @@ public class AlunoService {
             if (!alunoRepository.existsById(matricula)) {
                 throw new DaoException("Aluno não encontrado");
             }
+            // A remoção das inscrições é automática (orphanRemoval=true)
             alunoRepository.deleteById(matricula);
         } catch (Exception e) {
-            throw new DaoException("Erro ao remover aluno");
+            throw new DaoException("Erro ao remover aluno: " + e.getMessage());
         }
     }
 }

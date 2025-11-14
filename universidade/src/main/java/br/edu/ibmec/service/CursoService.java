@@ -2,15 +2,16 @@ package br.edu.ibmec.service;
 
 import java.util.Collection;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import br.edu.ibmec.dao.CursoRepository;
 import br.edu.ibmec.dto.CursoDTO;
 import br.edu.ibmec.entity.Curso;
 import br.edu.ibmec.exception.DaoException;
 import br.edu.ibmec.exception.ServiceException;
 import br.edu.ibmec.exception.ServiceException.ServiceExceptionEnum;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CursoService {
@@ -90,15 +91,16 @@ public class CursoService {
             Curso curso = cursoRepository.findById(codigo)
                     .orElseThrow(() -> new DaoException("Curso não encontrado"));
 
-            if (!curso.getAlunos().isEmpty()) {
-                throw new DaoException("Não é possível remover curso com alunos");
+            // CORREÇÃO: Verificando 'disciplinas' em vez de 'alunos'
+            if (!curso.getDisciplinas().isEmpty()) {
+                throw new DaoException("Não é possível remover curso com disciplinas cadastradas");
             }
 
             cursoRepository.deleteById(codigo);
         }
         catch(DaoException e)
         {
-            throw new DaoException("Erro ao remover curso");
+            throw new DaoException("Erro ao remover curso: " + e.getMessage());
         }
     }
 }

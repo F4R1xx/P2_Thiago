@@ -1,13 +1,23 @@
 package br.edu.ibmec.entity;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @NoArgsConstructor
 @Getter
@@ -38,21 +48,15 @@ public class Aluno {
     @Column(name = "telefone")
     private List<String> telefones = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "curso_codigo")
-    private Curso curso;
+    // REMOVIDO: O Aluno não se liga mais direto ao Curso
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "curso_codigo")
+    // private Curso curso;
+    
+    // NOVO: Um aluno tem várias inscrições (em turmas)
+    @OneToMany(mappedBy = "aluno", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Inscricao> inscricoes = new ArrayList<>();
 
-    public Aluno(int matricula, String nome, Data dataNascimento,
-                 boolean matriculaAtiva, EstadoCivil estadoCivil, Curso curso,
-                 List<String> telefones) {
-        this.matricula = matricula;
-        this.nome = nome;
-        this.dataNascimento = dataNascimento;
-        this.matriculaAtiva = matriculaAtiva;
-        this.estadoCivil = estadoCivil;
-        this.curso = curso;
 
-        this.idade = 0;
-        this.telefones = telefones;
-    }
+    // Construtor foi removido - Usaremos o AlunoBuilder para criar
 }

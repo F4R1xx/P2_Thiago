@@ -1,22 +1,27 @@
 package br.edu.ibmec.resource;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import br.edu.ibmec.service.AlunoService;
 import br.edu.ibmec.dto.AlunoDTO;
 import br.edu.ibmec.entity.Aluno;
 import br.edu.ibmec.exception.DaoException;
 import br.edu.ibmec.exception.ServiceException;
 import br.edu.ibmec.exception.ServiceException.ServiceExceptionEnum;
+import br.edu.ibmec.service.AlunoService;
 
 @RestController
 @RequestMapping("/aluno")
@@ -39,20 +44,26 @@ public class AlunoResource {
         }
     }
 
+    /**
+     * Endpoint de "Inscrição" (Cadastro) do aluno no sistema.
+     * Não matricula em curso, apenas cria o Aluno.
+     */
     @PostMapping(consumes = {MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<Void> cadastrarAluno(@RequestBody AlunoDTO alunoDTO)
             throws ServiceException, DaoException {
         try {
-            alunoService.cadastrarAluno(alunoDTO);
-            URI location = URI.create("" + alunoDTO.getMatricula());
+            // O AlunoService agora retorna o Aluno salvo, que podemos usar
+            Aluno alunoSalvo = alunoService.cadastrarAluno(alunoDTO);
+            URI location = URI.create("" + alunoSalvo.getMatricula());
             return ResponseEntity.created(location).build();
         } catch (ServiceException e) {
-            if (e.getTipo() == ServiceExceptionEnum.CURSO_CODIGO_INVALIDO) {
+            // Ajustado para os Enums corretos de Aluno
+            if (e.getTipo() == ServiceExceptionEnum.ALUNO_MATRICULA_INVALIDA) {
                 return ResponseEntity.badRequest()
-                        .header("Motivo", "Código inválido")
+                        .header("Motivo", "Matrícula inválida")
                         .build();
             }
-            if (e.getTipo() == ServiceExceptionEnum.CURSO_NOME_INVALIDO) {
+            if (e.getTipo() == ServiceExceptionEnum.ALUNO_NOME_INVALIDO) {
                 return ResponseEntity.badRequest()
                         .header("Motivo", "Nome inválido")
                         .build();
@@ -62,8 +73,12 @@ public class AlunoResource {
                         .build();
             }
         } catch (DaoException e) {
+            // Pode retornar 409 (Conflict) se a matrícula já existir
+            if (e.getMessage().contains("Matrícula já existe")) {
+                return ResponseEntity.status(409).header("Motivo", e.getMessage()).build();
+            }
             return ResponseEntity.badRequest()
-                    .header("Motivo", "Erro no banco de dados")
+                    .header("Motivo", "Erro no banco de dados: " + e.getMessage())
                     .build();
         }
     }
@@ -73,15 +88,15 @@ public class AlunoResource {
             throws ServiceException, DaoException {
         try {
             alunoService.alterarAluno(alunoDTO);
-            URI location = URI.create("" + alunoDTO.getMatricula());
-            return ResponseEntity.created(location).build();
+            // Alteração não cria um novo recurso, então 200 OK
+            return ResponseEntity.ok().build();
         } catch (ServiceException e) {
-            if (e.getTipo() == ServiceExceptionEnum.CURSO_CODIGO_INVALIDO) {
+             if (e.getTipo() == ServiceExceptionEnum.ALUNO_MATRICULA_INVALIDA) {
                 return ResponseEntity.badRequest()
-                        .header("Motivo", "Código inválido")
+                        .header("Motivo", "Matrícula inválida")
                         .build();
             }
-            if (e.getTipo() == ServiceExceptionEnum.CURSO_NOME_INVALIDO) {
+            if (e.getTipo() == ServiceExceptionEnum.ALUNO_NOME_INVALIDO) {
                 return ResponseEntity.badRequest()
                         .header("Motivo", "Nome inválido")
                         .build();
@@ -91,8 +106,12 @@ public class AlunoResource {
                         .build();
             }
         } catch (DaoException e) {
+            // Se o aluno não for encontrado para alteração
+            if (e.getMessage().contains("Aluno não encontrado")) {
+                 return ResponseEntity.status(404).header("Motivo", e.getMessage()).build();
+            }
             return ResponseEntity.badRequest()
-                    .header("Motivo", "Erro no banco de dados")
+                    .header("Motivo", "Erro no banco de dados: " + e.getMessage())
                     .build();
         }
     }
@@ -103,13 +122,17 @@ public class AlunoResource {
             alunoService.removerAluno(Integer.parseInt(matricula));
             return ResponseEntity.ok().build();
         } catch (DaoException e) {
-            return ResponseEntity.notFound().build();
+            // CORREÇÃO:
+            // A linha anterior era: .body(e.getMessage()).build() -> Incorreto
+            // A linha correta usa .header() (que retorna um builder) ou .build() direto
+            return ResponseEntity.status(404).header("Motivo", e.getMessage()).build();
         }
     }
 
     @GetMapping(produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> listarAlunos() {
         List<String> nomes = new ArrayList<>();
+        // O método listarAlunos() foi mantido no AlunoService
         for (Aluno aluno : alunoService.listarAlunos()) {
             nomes.add(aluno.getNome());
         }
