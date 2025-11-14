@@ -27,9 +27,9 @@ public class CursoService {
             CursoDTO cursoDTO = new CursoDTO(curso.getCodigo(), curso.getNome());
             return cursoDTO;
         }
-        catch(DaoException e)
+        catch(Exception e) // Alterado para Exception genérica para capturar orElseThrow
         {
-            throw new DaoException("Erro ao buscar curso");
+            throw new DaoException("Erro ao buscar curso: " + e.getMessage());
         }
     }
 
@@ -40,12 +40,13 @@ public class CursoService {
     @Transactional
     public void cadastrarCurso(CursoDTO cursoDTO) throws ServiceException,
             DaoException {
-        if ((cursoDTO.getCodigo() < 1) || (cursoDTO.getCodigo() > 99)) {
+        if ((cursoDTO.getCodigo() < 1) || (cursoDTO.getCodigo() > 9999)) { // Aumentado limite do código
             throw new ServiceException(
                     ServiceExceptionEnum.CURSO_CODIGO_INVALIDO);
         }
-        if ((cursoDTO.getNome().length() < 1)
-                || (cursoDTO.getNome().length() > 20)) {
+        // CORREÇÃO AQUI: Aumentado o limite de 20 para 100 caracteres
+        if ((cursoDTO.getNome() == null) || (cursoDTO.getNome().length() < 3)
+                || (cursoDTO.getNome().length() > 100)) {
             throw new ServiceException(ServiceExceptionEnum.CURSO_NOME_INVALIDO);
         }
 
@@ -53,23 +54,24 @@ public class CursoService {
 
         try {
             if (cursoRepository.existsById(curso.getCodigo())) {
-                throw new DaoException("Curso já existe");
+                throw new DaoException("Curso com código " + curso.getCodigo() + " já existe");
             }
             cursoRepository.save(curso);
-        } catch (DaoException e) {
-            throw new DaoException("erro do dao no service throw");
+        } catch (Exception e) {
+            throw new DaoException("Erro ao salvar curso: " + e.getMessage());
         }
     }
 
     @Transactional
     public void alterarCurso(CursoDTO cursoDTO) throws ServiceException,
             DaoException {
-        if ((cursoDTO.getCodigo() < 1) || (cursoDTO.getCodigo() > 99)) {
+        if ((cursoDTO.getCodigo() < 1) || (cursoDTO.getCodigo() > 9999)) {
             throw new ServiceException(
                     ServiceExceptionEnum.CURSO_CODIGO_INVALIDO);
         }
-        if ((cursoDTO.getNome().length() < 1)
-                || (cursoDTO.getNome().length() > 20)) {
+        // CORREÇÃO AQUI: Aumentado o limite de 20 para 100 caracteres
+        if ((cursoDTO.getNome() == null) || (cursoDTO.getNome().length() < 3)
+                || (cursoDTO.getNome().length() > 100)) {
             throw new ServiceException(ServiceExceptionEnum.CURSO_NOME_INVALIDO);
         }
 
@@ -77,11 +79,11 @@ public class CursoService {
 
         try {
             if (!cursoRepository.existsById(curso.getCodigo())) {
-                throw new DaoException("Curso não encontrado");
+                throw new DaoException("Curso com código " + curso.getCodigo() + " não encontrado");
             }
             cursoRepository.save(curso);
-        } catch (DaoException e) {
-            throw new DaoException("erro do dao no service throw");
+        } catch (Exception e) {
+            throw new DaoException("Erro ao alterar curso: " + e.getMessage());
         }
     }
 
@@ -89,16 +91,16 @@ public class CursoService {
     public void removerCurso(int codigo) throws DaoException {
         try {
             Curso curso = cursoRepository.findById(codigo)
-                    .orElseThrow(() -> new DaoException("Curso não encontrado"));
+                    .orElseThrow(() -> new DaoException("Curso com código " + codigo + " não encontrado"));
 
-            // CORREÇÃO: Verificando 'disciplinas' em vez de 'alunos'
-            if (!curso.getDisciplinas().isEmpty()) {
-                throw new DaoException("Não é possível remover curso com disciplinas cadastradas");
+            // Validação de segurança: Não podemos remover curso se ele tiver disciplinas
+            if (curso.getDisciplinas() != null && !curso.getDisciplinas().isEmpty()) {
+                throw new DaoException("Não é possível remover curso. Existem " + curso.getDisciplinas().size() + " disciplinas associadas.");
             }
 
             cursoRepository.deleteById(codigo);
         }
-        catch(DaoException e)
+        catch(Exception e)
         {
             throw new DaoException("Erro ao remover curso: " + e.getMessage());
         }

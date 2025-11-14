@@ -4,4 +4,4 @@ o CursoService lançará uma ServiceException ("Código de curso inválido").
 Erro 400 ao criar Aluno: Se você colocar um ID de curso que não existe no JSON do aluno,
 o sistema retornará erro pois o AlunoService verifica a existência do curso antes de salvar.
 
-Qual padrao usei, mostrar como implementei cada padrao. Quais validações eu to fazendo? Como eu resolvi a matricula?
+Qual padrao usei, mostrar como implementei cada padrao. Quais validações eu to fazendo? Como eu resolvi a matricula?!
