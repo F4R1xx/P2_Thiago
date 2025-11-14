@@ -1,0 +1,5 @@
+Erro 400 ao criar Curso: Se tentar criar um curso com código 100 ou maior, 
+o CursoService lançará uma ServiceException ("Código de curso inválido").
+
+Erro 400 ao criar Aluno: Se você colocar um ID de curso que não existe no JSON do aluno,
+o sistema retornará erro pois o AlunoService verifica a existência do curso antes de salvar.

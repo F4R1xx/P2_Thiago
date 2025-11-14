@@ -1,24 +1,19 @@
 package br.edu.ibmec.service;
 
-import java.text.SimpleDateFormat;
 import java.util.Collection;
-import java.util.Date;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
+import org.springframework.beans.factory.annotation.Autowired; // NOVO: Importa o Builder
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.edu.ibmec.builder.AlunoBuilder;
 import br.edu.ibmec.dao.AlunoRepository;
 import br.edu.ibmec.dao.CursoRepository;
 import br.edu.ibmec.dto.AlunoDTO;
 import br.edu.ibmec.entity.Aluno;
-import br.edu.ibmec.entity.Curso;
-import br.edu.ibmec.entity.Data;
-import br.edu.ibmec.entity.EstadoCivil;
 import br.edu.ibmec.exception.DaoException;
 import br.edu.ibmec.exception.ServiceException;
 import br.edu.ibmec.exception.ServiceException.ServiceExceptionEnum;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AlunoService {
@@ -27,26 +22,9 @@ public class AlunoService {
     private AlunoRepository alunoRepository;
 
     @Autowired
-    private CursoRepository cursoRepository;
+    private CursoRepository cursoRepository; // Este Service não deveria mais precisar disto
 
-    public static final Data getData(String dataString) {
-        try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
-            LocalDate localDate = LocalDate.parse(dataString, formatter);
-
-            Data dataRetorno = new Data();
-            dataRetorno.setAno(localDate.getYear());           // Retorna o ano completo (ex: 2001)
-            dataRetorno.setMes(localDate.getMonthValue());     // Retorna o mês correto (ex: 10 para Outubro)
-            dataRetorno.setDia(localDate.getDayOfMonth());     // Retorna o dia do mês (ex: 1)
-
-            return dataRetorno;
-
-        } catch (Exception e) {
-            System.out.println("Erro na conversão da data: " + e.getMessage());
-            return null;
-        }
-    }
+    // MÉTODO ANTIGO DE DATA (getData) FOI MOVIDO PARA DENTRO DO AlunoBuilder
 
     public AlunoDTO buscarAluno(int matricula) throws DaoException {
         try {
@@ -56,10 +34,10 @@ public class AlunoService {
             AlunoDTO alunoDTO = new AlunoDTO(
                     aluno.getMatricula(),
                     aluno.getNome(),
-                    aluno.getDataNascimento().toString(),
+                    aluno.getDataNascimento() != null ? aluno.getDataNascimento().toString() : null,
                     aluno.isMatriculaAtiva(),
-                    null,
-                    aluno.getCurso().getCodigo(),
+                    null, // DTO de EstadoCivil
+                    aluno.getCurso() != null ? aluno.getCurso().getCodigo() : 0, // Retorna 0 se não tiver curso
                     aluno.getTelefones());
             return alunoDTO;
         } catch (Exception e) {
@@ -71,71 +49,75 @@ public class AlunoService {
         return alunoRepository.findAll();
     }
 
+    /**
+     * Este método agora representa a "Inscrição" (Cadastro) do aluno.
+     * Ele apenas CRIA o aluno no sistema, mas não o matricula em um curso.
+     * A matrícula será feita pelo MatriculaService (Padrão Facade).
+     */
     @Transactional
-    public void cadastrarAluno(AlunoDTO alunoDTO) throws ServiceException,
+    public Aluno cadastrarAluno(AlunoDTO alunoDTO) throws ServiceException,
             DaoException {
-        if ((alunoDTO.getMatricula() < 1) || (alunoDTO.getMatricula() > 99)) {
+        if ((alunoDTO.getMatricula() < 1) || (alunoDTO.getMatricula() > 9999)) { // Aumentei o limite
             throw new ServiceException(
-                    ServiceExceptionEnum.CURSO_CODIGO_INVALIDO);
+                    ServiceExceptionEnum.ALUNO_MATRICULA_INVALIDA); // Enum correto
         }
         if ((alunoDTO.getNome().length() < 1)
-                || (alunoDTO.getNome().length() > 20)) {
-            throw new ServiceException(ServiceExceptionEnum.CURSO_NOME_INVALIDO);
+                || (alunoDTO.getNome().length() > 100)) { // Aumentei o limite
+            throw new ServiceException(ServiceExceptionEnum.ALUNO_NOME_INVALIDO); // Enum correto
         }
 
         try {
-            Curso curso = cursoRepository.findById(alunoDTO.getCurso())
-                    .orElseThrow(() -> new DaoException("Curso não encontrado"));
+            if (alunoRepository.existsById(alunoDTO.getMatricula())) {
+                 throw new DaoException("Matrícula já existe");
+            }
+            
+            // NOVO: Usa o Builder para criar o Aluno
+            Aluno aluno = AlunoBuilder.fromDTO(alunoDTO);
 
-            Aluno aluno = new Aluno(
-                    alunoDTO.getMatricula(),
-                    alunoDTO.getNome(),
-                    getData(alunoDTO.getDtNascimento().toString()),
-                    alunoDTO.isMatriculaAtiva(),
-                    EstadoCivil.solteiro,
-                    curso,
-                    alunoDTO.getTelefones());
+            // O aluno é salvo SEM curso.
+            return alunoRepository.save(aluno);
 
-            alunoRepository.save(aluno);
-            curso.getAlunos().add(aluno);
-            cursoRepository.save(curso);
         } catch (DaoException e) {
-            throw new DaoException("erro do dao no service throw");
+            throw e;
+        } catch (Exception e) {
+            throw new DaoException("Erro ao cadastrar aluno: " + e.getMessage());
         }
     }
 
     @Transactional
     public void alterarAluno(AlunoDTO alunoDTO) throws ServiceException,
             DaoException {
-        if ((alunoDTO.getMatricula() < 1) || (alunoDTO.getMatricula() > 99)) {
+        // Validações (similares ao cadastro)
+        if ((alunoDTO.getMatricula() < 1) || (alunoDTO.getMatricula() > 9999)) {
             throw new ServiceException(
-                    ServiceExceptionEnum.CURSO_CODIGO_INVALIDO);
+                    ServiceExceptionEnum.ALUNO_MATRICULA_INVALIDA);
         }
         if ((alunoDTO.getNome().length() < 1)
-                || (alunoDTO.getNome().length() > 20)) {
-            throw new ServiceException(ServiceExceptionEnum.CURSO_NOME_INVALIDO);
+                || (alunoDTO.getNome().length() > 100)) {
+            throw new ServiceException(ServiceExceptionEnum.ALUNO_NOME_INVALIDO);
         }
 
         try {
-            if (!alunoRepository.existsById(alunoDTO.getMatricula())) {
-                throw new DaoException("Aluno não encontrado");
-            }
+            // Busca o aluno existente
+            Aluno aluno = alunoRepository.findById(alunoDTO.getMatricula())
+                    .orElseThrow(() -> new DaoException("Aluno não encontrado"));
 
-            Curso curso = cursoRepository.findById(alunoDTO.getCurso())
-                    .orElseThrow(() -> new DaoException("Curso não encontrado"));
-
-            Aluno aluno = new Aluno(
-                    alunoDTO.getMatricula(),
-                    alunoDTO.getNome(),
-                    getData(alunoDTO.getDtNascimento()),
-                    alunoDTO.isMatriculaAtiva(),
-                    EstadoCivil.solteiro,
-                    curso,
-                    alunoDTO.getTelefones());
+            // Atualiza os dados usando o Builder (ou setters diretos)
+            // Vamos usar o Builder para manter a lógica de conversão da data
+            Aluno dadosNovos = AlunoBuilder.fromDTO(alunoDTO);
+            
+            aluno.setNome(dadosNovos.getNome());
+            aluno.setDataNascimento(dadosNovos.getDataNascimento());
+            aluno.setMatriculaAtiva(dadosNovos.isMatriculaAtiva());
+            aluno.setTelefones(dadosNovos.getTelefones());
+            // Nota: Este método não altera o curso do aluno.
+            // Isso deve ser feito por um serviço de "transferência".
 
             alunoRepository.save(aluno);
         } catch (DaoException e) {
-            throw new DaoException("erro do dao no service throw");
+            throw e;
+        } catch (Exception e) {
+             throw new DaoException("Erro ao alterar aluno: " + e.getMessage());
         }
     }
 
