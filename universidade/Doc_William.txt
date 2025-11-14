@@ -1,7 +1,39 @@
-Erro 400 ao criar Curso: Se tentar criar um curso com código 100 ou maior, 
-o CursoService lançará uma ServiceException ("Código de curso inválido").
+Curso
+{
+  "codigo": 1,
+  "nome": "Engenharia de Software"
+}
+Professor
+{
+  "nome": "Prof. Alan Turing"
+}
+Aluno
+{
+  "matricula": 101,
+  "nome": "Thiago",
+  "dtNascimento": "29/02/2000",
+  "matriculaAtiva": true,
+  "telefones": [
+    "21999998888"
+  ]
+}
+Disciplina
+{
+  "nome": "Calculo I",
+  "valorDisciplina": 650.0,
+  "cursoId": 1
+}
+Turma
+{
+  "disciplinaId": 1,
+  "professorId": 1,
+  "capacidade": 50
+}
 
-Erro 400 ao criar Aluno: Se você colocar um ID de curso que não existe no JSON do aluno,
-o sistema retornará erro pois o AlunoService verifica a existência do curso antes de salvar.
+POST /inscricao/disciplina/
+idAluno
+idDisciplina
 
-Qual padrao usei, mostrar como implementei cada padrao. Quais validações eu to fazendo? Como eu resolvi a matricula?!
+GET /inscricao/mensalidade/{idAluno}
+padrao
+bolsista

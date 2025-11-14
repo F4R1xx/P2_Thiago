@@ -33,14 +33,16 @@ public class AlunoService {
             Aluno aluno = alunoRepository.findById(matricula)
                     .orElseThrow(() -> new DaoException("Aluno não encontrado"));
 
-            AlunoDTO alunoDTO = new AlunoDTO(
-                    aluno.getMatricula(),
-                    aluno.getNome(),
-                    aluno.getDataNascimento().toString(),
-                    aluno.isMatriculaAtiva(),
-                    null, // DTO de EstadoCivil (não implementado)
-                    0, // Código do curso (REMOVIDO - Aluno não tem mais curso direto)
-                    aluno.getTelefones());
+            // **** ALTERAÇÃO AQUI ****
+            // Trocamos o construtor antigo por setters,
+            // pois o DTO foi simplificado.
+            AlunoDTO alunoDTO = new AlunoDTO();
+            alunoDTO.setMatricula(aluno.getMatricula());
+            alunoDTO.setNome(aluno.getNome());
+            alunoDTO.setDtNascimento(aluno.getDataNascimento().toString());
+            alunoDTO.setMatriculaAtiva(aluno.isMatriculaAtiva());
+            alunoDTO.setTelefones(aluno.getTelefones());
+            
             return alunoDTO;
         } catch (Exception e) {
             throw new DaoException("Erro ao buscar aluno: " + e.getMessage());

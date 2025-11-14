@@ -1,15 +1,24 @@
 package br.edu.ibmec.resource;
 
+import org.springframework.beans.factory.annotation.Autowired; // ALTERADO: Novo import
+import org.springframework.http.ResponseEntity; // ALTERADO: Novo import
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import br.edu.ibmec.dto.InscricaoDisciplinaDTO;
+import br.edu.ibmec.dto.InscricaoTurmaDTO;
+import br.edu.ibmec.entity.Inscricao;
 import br.edu.ibmec.exception.DaoException;
 import br.edu.ibmec.exception.ServiceException;
 import br.edu.ibmec.financeiro.CalculoComDescontoBolsaStrategy;
 import br.edu.ibmec.financeiro.CalculoPadraoStrategy;
-import br.edu.ibmec.entity.Inscricao; // <-- CORREÇÃO AQUI: Importar a entidade
 import br.edu.ibmec.service.InscricaoService;
 import br.edu.ibmec.service.MensalidadeService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 /**
  * Novo endpoint para expor o Padrão Facade (InscricaoService)
@@ -35,14 +44,15 @@ public class InscricaoResource {
     /**
      * Opção 1: Realiza a inscrição de um Aluno em uma Turma específica.
      * (Padrão Facade)
+     * ALTERADO: Recebe os dados via @RequestBody
      */
-    @PostMapping("/turma/{idAluno}/{idTurma}")
+    @PostMapping("/turma") // ALTERADO: URL simplificada
     public ResponseEntity<String> matricularAluno(
-            @PathVariable int idAluno, 
-            @PathVariable long idTurma) {
+            @RequestBody InscricaoTurmaDTO dto) { // ALTERADO: Usa o DTO
         try {
-            inscricaoService.realizarInscricao(idAluno, idTurma);
-            return ResponseEntity.ok("Inscrição na turma " + idTurma + " realizada com sucesso!");
+            // ALTERADO: Busca os dados do DTO
+            inscricaoService.realizarInscricao(dto.getIdAluno(), dto.getIdTurma());
+            return ResponseEntity.ok("Inscrição na turma " + dto.getIdTurma() + " realizada com sucesso!");
         } catch (DaoException e) {
             // Erro de "Não Encontrado" (Aluno/Turma)
             return ResponseEntity.status(404).body(e.getMessage());
@@ -55,15 +65,15 @@ public class InscricaoResource {
     /**
      * Opção 2: Realiza a inscrição de um Aluno em uma DISCIPLINA.
      * O sistema busca uma turma com vaga automaticamente.
+     * ALTERADO: Recebe os dados via @RequestBody
      */
-    @PostMapping("/disciplina/{idAluno}/{idDisciplina}")
+    @PostMapping("/disciplina") // ALTERADO: URL simplificada
     public ResponseEntity<String> matricularAlunoPorDisciplina(
-            @PathVariable int idAluno, 
-            @PathVariable long idDisciplina) {
+            @RequestBody InscricaoDisciplinaDTO dto) { // ALTERADO: Usa o DTO
         try {
-            // Agora o 'import' existe, o Java vai encontrar a classe 'Inscricao'
-            Inscricao inscricaoFeita = inscricaoService.realizarInscricaoPorDisciplina(idAluno, idDisciplina);
-            return ResponseEntity.ok("Inscrição na disciplina " + idDisciplina + " realizada (turma " + inscricaoFeita.getTurma().getId() + " encontrada)!");
+            // ALTERADO: Busca os dados do DTO
+            Inscricao inscricaoFeita = inscricaoService.realizarInscricaoPorDisciplina(dto.getIdAluno(), dto.getIdDisciplina());
+            return ResponseEntity.ok("Inscrição na disciplina " + dto.getIdDisciplina() + " realizada (turma " + inscricaoFeita.getTurma().getId() + " encontrada)!");
         } catch (DaoException e) {
             // Erro de "Não Encontrado" (Aluno/Disciplina/Turma)
             return ResponseEntity.status(404).body(e.getMessage());

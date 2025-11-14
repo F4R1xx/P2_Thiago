@@ -8,8 +8,6 @@
 
 package br.edu.ibmec.dto;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -25,43 +23,13 @@ public class AlunoDTO {
 	private int matricula;
 	private String nome;
 	private String dtNascimento;
-	private int idade;
 	private boolean matriculaAtiva;
-	private EstadoCivilDTO estadoCivilDTO;
 	private List<String> telefones;
 
-	private int curso;
-
-    public AlunoDTO(int matricula,
-			String nome, 
-			String dtNascimento,
-			boolean matriculaAtiva, 
-			EstadoCivilDTO estadoCivilDTO, 
-			int curso,
-			List<String> telefones) {
-		this.matricula = matricula;
-		this.nome = nome;
-		this.dtNascimento = dtNascimento;
-		this.matriculaAtiva = matriculaAtiva;
-		this.estadoCivilDTO = estadoCivilDTO;
-		this.curso = curso;
-		
-		this.idade = getIdadeConvertida(dtNascimento);
-		this.telefones = telefones;
-	}
+	// Campos removidos:
+	// - private int idade; (Será calculada e salva no banco pelo AlunoBuilder)
+	// - private EstadoCivilDTO estadoCivilDTO; (Será definido como "solteiro" pelo AlunoBuilder)
+	// - private int curso; (Campo obsoleto, aluno não tem mais curso direto)
 	
-	private int getIdadeConvertida(String data)
-	{
-		SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-		Date dataConvertida = null;
-		try {
-			dataConvertida = sdf.parse(data);
-			Date hoje = new Date();
-			return hoje.getYear() - dataConvertida.getYear();
-		} catch (Exception e) {
-			System.out.println("Erro Convers�o da idade: " + e.getMessage());
-			return 0;
-		}
-	}
-
+	// Construtor complexo e método getIdadeConvertida() foram removidos.
 }
