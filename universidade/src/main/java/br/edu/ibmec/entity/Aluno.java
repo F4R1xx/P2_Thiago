@@ -11,8 +11,10 @@ import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType; // NOVO IMPORT
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumn; // NOVO IMPORT
+import jakarta.persistence.ManyToOne; // NOVO IMPORT
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -48,12 +50,12 @@ public class Aluno {
     @Column(name = "telefone")
     private List<String> telefones = new ArrayList<>();
 
-    // REMOVIDO: O Aluno não se liga mais direto ao Curso
-    // @ManyToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "curso_codigo")
-    // private Curso curso;
+    // NOVO: O Aluno agora se liga a um Curso
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "curso_codigo") // Este nome deve bater com a coluna no BD
+    private Curso curso;
     
-    // NOVO: Um aluno tem várias inscrições (em turmas)
+    // Um aluno tem várias inscrições (em turmas)
     @OneToMany(mappedBy = "aluno", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Inscricao> inscricoes = new ArrayList<>();
 

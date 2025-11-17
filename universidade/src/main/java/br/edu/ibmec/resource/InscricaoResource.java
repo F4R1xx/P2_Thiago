@@ -1,7 +1,9 @@
 package br.edu.ibmec.resource;
 
+import java.util.Map; // ALTERADO: Novo import
+
 import org.springframework.beans.factory.annotation.Autowired; // ALTERADO: Novo import
-import org.springframework.http.ResponseEntity; // ALTERADO: Novo import
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,15 +12,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import br.edu.ibmec.dto.InscricaoDisciplinaDTO;
-import br.edu.ibmec.dto.InscricaoTurmaDTO;
-import br.edu.ibmec.entity.Inscricao;
+import br.edu.ibmec.dto.InscricaoTurmaDTO; // NOVO IMPORT
+import br.edu.ibmec.dto.MensalidadeDTO;
 import br.edu.ibmec.exception.DaoException;
 import br.edu.ibmec.exception.ServiceException;
 import br.edu.ibmec.financeiro.CalculoComDescontoBolsaStrategy;
 import br.edu.ibmec.financeiro.CalculoPadraoStrategy;
 import br.edu.ibmec.service.InscricaoService;
-import br.edu.ibmec.service.MensalidadeService;
+import br.edu.ibmec.service.MensalidadeService; // NOVO IMPORT
 
 /**
  * Novo endpoint para expor o Padrão Facade (InscricaoService)
@@ -63,25 +64,20 @@ public class InscricaoResource {
     }
 
     /**
-     * Opção 2: Realiza a inscrição de um Aluno em uma DISCIPLINA.
-     * O sistema busca uma turma com vaga automaticamente.
-     * ALTERADO: Recebe os dados via @RequestBody
+     * REMOVIDO: Endpoint de inscrição por disciplina foi removido.
      */
-    @PostMapping("/disciplina") // ALTERADO: URL simplificada
-    public ResponseEntity<String> matricularAlunoPorDisciplina(
-            @RequestBody InscricaoDisciplinaDTO dto) { // ALTERADO: Usa o DTO
-        try {
-            // ALTERADO: Busca os dados do DTO
-            Inscricao inscricaoFeita = inscricaoService.realizarInscricaoPorDisciplina(dto.getIdAluno(), dto.getIdDisciplina());
-            return ResponseEntity.ok("Inscrição na disciplina " + dto.getIdDisciplina() + " realizada (turma " + inscricaoFeita.getTurma().getId() + " encontrada)!");
-        } catch (DaoException e) {
-            // Erro de "Não Encontrado" (Aluno/Disciplina/Turma)
-            return ResponseEntity.status(404).body(e.getMessage());
-        } catch (ServiceException e) {
-            // Erro de Regra de Negócio (Sem vagas, Já inscrito)
-            return ResponseEntity.status(400).body(e.getMessage());
-        }
-    }
+    // @PostMapping("/disciplina") 
+    // public ResponseEntity<String> matricularAlunoPorDisciplina(
+    //         @RequestBody InscricaoDisciplinaDTO dto) { 
+    //     try {
+    //         Inscricao inscricaoFeita = inscricaoService.realizarInscricaoPorDisciplina(dto.getIdAluno(), dto.getIdDisciplina());
+    //         return ResponseEntity.ok("Inscrição na disciplina " + dto.getIdDisciplina() + " realizada (turma " + inscricaoFeita.getTurma().getId() + " encontrada)!");
+    //     } catch (DaoException e) {
+    //         return ResponseEntity.status(404).body(e.getMessage());
+    //     } catch (ServiceException e) {
+    //         return ResponseEntity.status(400).body(e.getMessage());
+    //     }
+    // }
 
 
     /**
@@ -90,19 +86,21 @@ public class InscricaoResource {
      * @param tipoCalculo "padrao" ou "bolsista"
      */
     @GetMapping("/mensalidade/{idAluno}")
-    public ResponseEntity<String> getMensalidade(
+    public ResponseEntity<?> getMensalidade( // ALTERADO para ResponseEntity<?>
             @PathVariable int idAluno,
             @RequestParam(defaultValue = "padrao") String tipoCalculo) {
         try {
-            double mensalidade;
+            MensalidadeDTO dto; // ALTERADO
             if ("bolsista".equalsIgnoreCase(tipoCalculo)) {
-                mensalidade = mensalidadeService.calcularMensalidade(idAluno, calculoComDescontoBolsaStrategy);
+                dto = mensalidadeService.calcularMensalidade(idAluno, calculoComDescontoBolsaStrategy, "bolsista");
             } else {
-                mensalidade = mensalidadeService.calcularMensalidade(idAluno, calculoPadrao);
+                dto = mensalidadeService.calcularMensalidade(idAluno, calculoPadrao, "padrao");
             }
-            return ResponseEntity.ok("Valor da mensalidade: R$ " + String.format("%.2f", mensalidade));
+            return ResponseEntity.ok(dto); // ALTERADO: Retorna o DTO
         } catch (DaoException e) {
-            return ResponseEntity.status(404).body(e.getMessage());
+            // ALTERADO: Retorna um JSON de erro
+            Map<String, String> erro = Map.of("erro", e.getMessage());
+            return ResponseEntity.status(404).body(erro);
         }
     }
 }

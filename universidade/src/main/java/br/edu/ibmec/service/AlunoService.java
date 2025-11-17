@@ -12,6 +12,7 @@ import br.edu.ibmec.dao.AlunoRepository;
 import br.edu.ibmec.dao.CursoRepository;
 import br.edu.ibmec.dto.AlunoDTO;
 import br.edu.ibmec.entity.Aluno;
+import br.edu.ibmec.entity.Curso; // NOVO IMPORT
 import br.edu.ibmec.exception.DaoException;
 import br.edu.ibmec.exception.ServiceException;
 import br.edu.ibmec.exception.ServiceException.ServiceExceptionEnum;
@@ -39,9 +40,14 @@ public class AlunoService {
             AlunoDTO alunoDTO = new AlunoDTO();
             alunoDTO.setMatricula(aluno.getMatricula());
             alunoDTO.setNome(aluno.getNome());
-            alunoDTO.setDtNascimento(aluno.getDataNascimento().toString());
+            if (aluno.getDataNascimento() != null) { // Check de nulidade
+                alunoDTO.setDtNascimento(aluno.getDataNascimento().toString());
+            }
             alunoDTO.setMatriculaAtiva(aluno.isMatriculaAtiva());
             alunoDTO.setTelefones(aluno.getTelefones());
+            if (aluno.getCurso() != null) { // Check de nulidade
+                alunoDTO.setCodigoCurso(aluno.getCurso().getCodigo());
+            }
             
             return alunoDTO;
         } catch (Exception e) {
@@ -70,12 +76,18 @@ public class AlunoService {
         if (alunoRepository.existsById(alunoDTO.getMatricula())) {
             throw new DaoException("Matrícula já existe");
         }
+        
+        // NOVO: Buscar o curso
+        Curso curso = cursoRepository.findById(alunoDTO.getCodigoCurso())
+                .orElseThrow(() -> new DaoException("Curso com código " + alunoDTO.getCodigoCurso() + " não encontrado."));
+
 
         try {
             // Usando o Padrão Builder
             Aluno aluno = new AlunoBuilder(alunoDTO)
                 .comDadosPessoais()
                 .comDataNascimentoEIdade()
+                .comCurso(curso) // NOVO: Passando o curso
                 .build();
 
             return alunoRepository.save(aluno);
@@ -103,11 +115,16 @@ public class AlunoService {
             throw new DaoException("Aluno não encontrado para alteração");
         }
 
+        // NOVO: Buscar o curso
+        Curso curso = cursoRepository.findById(alunoDTO.getCodigoCurso())
+                .orElseThrow(() -> new DaoException("Curso com código " + alunoDTO.getCodigoCurso() + " não encontrado."));
+
         try {
             // Usando o Padrão Builder para criar o objeto atualizado
             Aluno aluno = new AlunoBuilder(alunoDTO)
                 .comDadosPessoais()
                 .comDataNascimentoEIdade()
+                .comCurso(curso) // NOVO: Passando o curso
                 .build();
             
             alunoRepository.save(aluno);

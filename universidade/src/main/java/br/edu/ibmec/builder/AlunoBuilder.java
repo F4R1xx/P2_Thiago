@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 
 import br.edu.ibmec.dto.AlunoDTO;
 import br.edu.ibmec.entity.Aluno;
+import br.edu.ibmec.entity.Curso; // NOVO IMPORT
 import br.edu.ibmec.entity.Data;
 import br.edu.ibmec.entity.EstadoCivil;
 
@@ -40,6 +41,12 @@ public class AlunoBuilder {
             aluno.setDataNascimento(dataNascimento);
             aluno.setIdade(calcularIdade(dataNascimento));
         }
+        return this;
+    }
+
+    // NOVO: Método para adicionar o curso
+    public AlunoBuilder comCurso(Curso curso) {
+        this.aluno.setCurso(curso);
         return this;
     }
 

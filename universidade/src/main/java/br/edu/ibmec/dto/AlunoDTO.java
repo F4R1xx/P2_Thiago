@@ -25,11 +25,11 @@ public class AlunoDTO {
 	private String dtNascimento;
 	private boolean matriculaAtiva;
 	private List<String> telefones;
+	private int codigoCurso; // NOVO: Código do curso para associação
 
 	// Campos removidos:
 	// - private int idade; (Será calculada e salva no banco pelo AlunoBuilder)
 	// - private EstadoCivilDTO estadoCivilDTO; (Será definido como "solteiro" pelo AlunoBuilder)
-	// - private int curso; (Campo obsoleto, aluno não tem mais curso direto)
 	
 	// Construtor complexo e método getIdadeConvertida() foram removidos.
 }
